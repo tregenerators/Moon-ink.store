@@ -1,0 +1,1770 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Moon Ink</title>
+<style>
+  :root{
+    --bg1:#05010c; --bg2:#12042a;
+    --glass: rgba(255,255,255,.07);
+    --border: rgba(255,255,255,.16);
+    --text: rgba(255,255,255,.92);
+    --muted: rgba(255,255,255,.70);
+    --accent1: rgba(190,120,255,.95);
+    --accent2: rgba(120,220,255,.95);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+    color:var(--text);
+    background:
+      radial-gradient(1200px 900px at 18% 15%, rgba(140,70,200,0.22), transparent 65%),
+      radial-gradient(900px 700px at 78% 30%, rgba(70,110,200,0.20), transparent 65%),
+      radial-gradient(1400px 1000px at 50% 86%, rgba(150,70,200,0.18), transparent 70%),
+      linear-gradient(180deg, #020006 0%, #0a0218 55%, #020006 100%);
+    overflow-x:hidden;
+  }
+
+  /* starfield canvas behind */
+  #starCanvas{
+    position:fixed; inset:0;
+    width:100vw; height:100vh;
+    pointer-events:none;
+    z-index:0;
+    opacity:.65;
+  }
+
+  .wrap{position:relative; z-index:2; max-width:1150px; margin:0 auto; padding:18px 14px 80px;}
+  .top{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:14px 16px;
+    background:var(--glass);
+    border:1px solid var(--border);
+    border-radius:18px;
+    backdrop-filter: blur(10px);
+    position:sticky; top:10px; z-index:5;
+  }
+  .brand{display:flex; flex-direction:column; gap:2px}
+  .brand .t{font-size:22px; font-weight:900; letter-spacing:.6px}
+  .brand .s{font-size:12px; color:var(--muted); margin:0}
+  .pill{
+    display:flex; gap:10px; align-items:center;
+    padding:10px 12px; border-radius:999px;
+    background: rgba(0,0,0,.20);
+    border:1px solid rgba(255,255,255,.14);
+  }
+  .count{font-weight:900}
+
+  .tabs{margin-top:12px; display:flex; gap:8px; flex-wrap:wrap}
+  .tab{
+    cursor:pointer;
+    padding:9px 12px;
+    border-radius:999px;
+    border:1px solid rgba(255,255,255,.14);
+    background: rgba(0,0,0,.20);
+    color:var(--text);
+    font-weight:800;
+    transition: box-shadow .18s ease, transform .08s ease, border-color .18s ease;
+  }
+  .tab:hover{
+    box-shadow: 0 0 0 2px rgba(0,0,0,.85), 0 0 18px rgba(190,120,255,.25);
+  }
+  .tab.active{
+    background: linear-gradient(135deg, rgba(190,120,255,.26), rgba(120,220,255,.14));
+    border-color: rgba(255,255,255,.22);
+  }
+
+  .grid{margin-top:14px; display:grid; grid-template-columns: 1.2fr .8fr; gap:14px; align-items:start;}
+  .card{
+    background: rgba(255,255,255,0.045);
+    border:1px solid var(--border);
+    border-radius:18px;
+    padding:14px;
+    backdrop-filter: blur(12px);
+  }
+  h2{margin:0 0 10px; font-size:16px}
+  .row{display:flex; gap:10px; align-items:center}
+  .row>*{flex:1}
+  input, select, textarea{
+    width:100%;
+    padding:10px 12px;
+    border-radius:12px;
+    border:1px solid rgba(255,255,255,.18);
+    background: rgba(0,0,0,.25);
+    color: var(--text);
+    outline:none;
+  }
+  textarea{min-height:92px; resize:vertical}
+  .small{color:var(--muted); font-size:12px; margin-top:6px}
+  .hr{border:0; border-top:1px solid rgba(255,255,255,.10); margin:14px 0}
+
+  .button{
+    cursor:pointer;
+    border:1px solid rgba(255,255,255,.18);
+    background: linear-gradient(135deg, rgba(190,120,255,0.35), rgba(120,220,255,0.18));
+    color:var(--text);
+    padding:10px 12px;
+    border-radius:12px;
+    font-weight:900;
+    user-select:none;
+    transition: transform .08s ease, box-shadow .18s ease, border-color .18s ease, background .18s ease;
+    box-shadow: 0 10px 28px rgba(0,0,0,.25);
+  }
+  .button:hover{
+    box-shadow: 0 0 0 2px rgba(0,0,0,.92), 0 0 22px rgba(190,120,255,.35), 0 0 18px rgba(120,220,255,.22);
+    border-color: rgba(255,255,255,.26);
+  }
+  .button:active{transform: translateY(1px) scale(.99)}
+  .button[disabled]{opacity:.55; cursor:not-allowed}
+
+  .notice{
+    padding:10px 12px;
+    border-radius:14px;
+    border:1px solid rgba(120,220,255,0.28);
+    background: rgba(120,220,255,0.10);
+    white-space:pre-wrap;
+  }
+  .notice.bad{border-color: rgba(255,120,120,.35); background: rgba(255,120,120,.12);}
+
+  .product{
+    display:flex; justify-content:space-between; gap:12px; align-items:center;
+    padding:12px;
+    border-radius:16px;
+    border:1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.04);
+    margin-top:10px;
+  }
+  .pLeft{display:flex; gap:12px; align-items:center; min-width:0}
+  .pImg{width:64px; height:64px; border-radius:14px; border:1px solid rgba(255,255,255,.18); object-fit:cover; background:rgba(255,255,255,.06);}
+  .meta{min-width:0; display:flex; flex-direction:column; gap:3px}
+  .name{font-weight:900; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:520px}
+  .muted{color:var(--muted); font-size:12px}
+  .badge{display:inline-flex; padding:4px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.16); background: rgba(255,255,255,.06); font-size:12px}
+  .good{border-color: rgba(120,220,255,.35); background: rgba(120,220,255,.12)}
+  .bad{border-color: rgba(255,120,120,.35); background: rgba(255,120,120,.12)}
+  .warn{border-color: rgba(255,210,120,.35); background: rgba(255,210,120,.10)}
+  .right{display:flex; gap:10px; align-items:center; flex:0 0 auto}
+  .price{font-weight:1000}
+
+  .cartItem{
+    display:flex; justify-content:space-between; gap:12px;
+    padding:10px 0;
+    border-bottom:1px solid rgba(255,255,255,.10);
+  }
+  .cartItem:last-child{border-bottom:none}
+  .qty{display:flex; gap:8px; align-items:center; justify-content:flex-end}
+  .iconBtn{
+    width:34px; height:34px;
+    border-radius:10px;
+    border:1px solid rgba(255,255,255,.18);
+    background: rgba(255,255,255,.08);
+    color:var(--text);
+    cursor:pointer;
+    font-weight:900;
+  }
+
+  .totalLine{display:flex; justify-content:space-between; margin-top:8px; color:var(--muted)}
+  .totalLine strong{color:var(--text)}
+  .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace}
+
+  /* Modal */
+  .overlay{
+    position:fixed; inset:0;
+    display:none;
+    align-items:center; justify-content:center;
+    background: rgba(0,0,0,.58);
+    z-index:50;
+    padding:18px;
+  }
+  .modal{
+    width:min(520px, 100%);
+    border-radius:18px;
+    border:1px solid rgba(255,255,255,.20);
+    background: rgba(10,10,20,.78);
+    box-shadow: 0 20px 70px rgba(0,0,0,.55);
+    padding:16px;
+  }
+  .mHead{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px}
+  .closeBtn{
+    width:38px; height:38px;
+    border-radius:12px;
+    border:1px solid rgba(255,255,255,.18);
+    background: rgba(255,255,255,.08);
+    color:var(--text);
+    font-weight:900;
+    cursor:pointer;
+  }
+
+  @media (max-width: 980px){ .grid{grid-template-columns:1fr} .name{max-width:65vw} }
+
+  /* confetti canvas above */
+  #confettiCanvas{
+    position:fixed; inset:0;
+    width:100vw; height:100vh;
+    pointer-events:none;
+    z-index:20;
+  }
+
+
+  /* subtle drifting nebula fog */
+  body::before{
+    content:"";
+    position:fixed; inset:-20%;
+    pointer-events:none;
+    z-index:1;
+    background:
+      radial-gradient(600px 420px at 30% 25%, rgba(170,90,220,.18), transparent 60%),
+      radial-gradient(720px 520px at 70% 35%, rgba(90,140,220,.14), transparent 62%),
+      radial-gradient(820px 620px at 55% 80%, rgba(170,90,220,.12), transparent 68%);
+    filter: blur(18px);
+    opacity: var(--fogOpacity, .55);
+    animation: fogDrift 22s ease-in-out infinite alternate;
+  }
+  @keyframes fogDrift{
+    from{ transform: translate3d(-2%, -1%, 0) scale(1.02) rotate(-1deg); }
+    to{ transform: translate3d(2%, 1%, 0) scale(1.06) rotate(1deg); }
+  }
+
+  /* low stock pulse */
+  .badge.warn{
+    animation: lowPulse 1.25s ease-in-out infinite;
+  }
+  @keyframes lowPulse{
+    0%,100%{ box-shadow: 0 0 0 rgba(255,210,120,0); }
+    50%{ box-shadow: 0 0 18px rgba(255,210,120,.20); }
+  }
+
+  @media (max-width: 980px){
+    #rightCard{
+      position: sticky;
+      bottom: 10px;
+      z-index: 4;
+      background: rgba(10,10,20,.78);
+      backdrop-filter: blur(14px);
+    }
+  }
+
+</style>
+</head>
+<body>
+<canvas id="starCanvas" aria-hidden="true"></canvas>
+<canvas id="confettiCanvas" aria-hidden="true"></canvas>
+
+<div class="wrap">
+  <div class="top">
+    <div class="brand">
+      <div class="t">🌙  𝓜𝓸𝓸𝓷 𝓲𝓷𝓴</div>
+      <p class="s" id="tagline"></p>
+    </div>
+    <div class="pill" style="flex-wrap:wrap">
+      <select id="langSel" title="Language" style="max-width:120px;padding:8px 10px;border-radius:999px"></select>
+      <select id="currencySel" title="Currency" style="max-width:120px;padding:8px 10px;border-radius:999px"></select>
+      <select id="themeSel" title="Theme" style="max-width:140px;padding:8px 10px;border-radius:999px"></select>
+      <span class="count" id="cartCount">0</span>
+      <button class="button" id="scrollCart" data-i18n="cartBtn">Cart</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="shop">Shop</div>
+    <div class="tab" data-tab="about">About</div>
+    <!-- Admin tab is hidden; unlocked users can switch to it -->
+    <div class="tab" data-tab="admin" style="display:none" id="adminTabBtn">Admin</div>
+  </div>
+
+  <div class="grid">
+    <div class="card" id="leftCard">
+      <!-- SHOP -->
+      <div data-panel="shop">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+          <h2>Featured</h2>
+          <div class="small" style="margin:0">Pinned items</div>
+        </div>
+        <div id="featuredList"></div>
+
+        <div class="hr"></div>
+
+        <h2>Products</h2>
+        <div class="row">
+          <select id="categoryFilter"></select>
+          <input id="searchBox" placeholder="Search items..."/>
+        </div>
+        <div id="productList"></div>
+      </div>
+
+      <!-- ABOUT -->
+      <div data-panel="about" style="display:none">
+        <h2>About</h2>
+        <div class="notice" id="aboutBox"></div>
+      </div>
+
+      <!-- ADMIN -->
+      <div data-panel="admin" style="display:none">
+        <h2>Admin</h2>
+        <div id="adminToast" class="notice" style="display:none; margin-top:10px"></div>
+        <div class="row" style="margin-top:8px">
+  <button class="button" id="backShop">Back to Shop</button>
+  <button class="button" id="closeAdminPanel">Close Admin</button>
+</div>
+        <div class="small">Tip: Press ↓ ↓ ↓ anywhere to open Admin Login.</div>
+
+        <div class="hr"></div>
+
+        <h2>Settings</h2>
+        <div class="small">Webhook URL</div>
+        <input id="webhookUrl" placeholder="https://discord.com/api/webhooks/..."/>
+        <button class="button" style="width:100%; margin-top:10px" id="saveWebhook">Save Webhook</button>
+        <div id="settingsMsg" class="notice" style="display:none; margin-top:10px"></div>
+
+        <div class="hr"></div>
+
+        <h2>About (editable)</h2>
+        <textarea id="aboutEditor" placeholder="Write About text..."></textarea>
+        <button class="button" style="width:100%; margin-top:10px" id="saveAbout">Save About</button>
+
+        <div class="hr"></div>
+
+        <h2>Categories</h2>
+        <div class="row">
+          <input id="newCat" placeholder="New category"/>
+          <button class="button" id="addCat">Add</button>
+        </div>
+        <div id="catList"></div>
+
+        <div class="hr"></div>
+
+        <h2>Add Product</h2>
+        <div class="row">
+          <input id="newName" placeholder="Name"/>
+          <input id="newPrice" placeholder="Price (e.g. 0.40)"/>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <input id="newImg" placeholder="Image URL (optional)"/>
+          <input id="newStock" placeholder="Stock qty (0=sold out)"/>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <select id="newCatSel"></select>
+          <select id="newFeat">
+            <option value="0">not featured</option>
+            <option value="1">featured</option>
+          </select>
+          <button class="button" id="addProd">Add</button>
+        </div>
+
+        <div class="hr"></div>
+
+        <h2>Edit Products</h2>
+        <div id="adminProdList"></div>
+
+        <div class="hr"></div>
+
+        <h2>Discounts</h2>
+        <div class="row">
+          <input id="discCode" placeholder="CODE (MOON10)"/>
+          <select id="discType">
+            <option value="percent">percent</option>
+            <option value="fixed">fixed</option>
+          </select>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <input id="discVal" placeholder="Value (10 or 0.50)"/>
+          <input id="discExp" placeholder="Expiry (YYYY-MM-DD) optional"/>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <select id="discActive">
+            <option value="1">active</option>
+            <option value="0">inactive</option>
+          </select>
+          <button class="button" id="addDisc">Add</button>
+        </div>
+        <div id="discList"></div>
+
+        <div class="hr"></div>
+
+        <h2>Orders</h2>
+        <div class="row" style="margin:6px 0 10px">
+          <button class="button" id="orderFilterAll">All</button>
+          <button class="button" id="orderFilterPending">Pending</button>
+          <button class="button" id="orderFilterConfirmed">Confirmed</button>
+          <button class="button" id="orderFilterDeclined">Declined</button>
+        </div>
+        <input id="orderSearch" placeholder="Search orders (buyer / IGN / code)"/>
+        <div class="small">Pending orders can be Confirmed (C) or Declined (D). Stock only changes on Confirm.</div>
+        <div id="ordersAdmin"></div>
+        <div class="notice" id="orderDetailAdmin" style="display:none; margin-top:10px"></div>
+
+        <div class="hr"></div>
+
+        <button class="button" style="width:100%" id="exportBtn">Export Backup (JSON)</button>
+<input id="importFile" type="file" accept="application/json" style="margin-top:10px" />
+<button class="button" style="width:100%; margin-top:10px" id="importBtn">Import Backup (JSON)</button>
+        <button class="button" style="width:100%; margin-top:10px" id="wipeBtn">Wipe Everything (Local)</button>
+      </div>
+    </div>
+
+    <div class="card" id="rightCard">
+      <h2>Cart</h2>
+      <div id="cartItems"></div>
+
+      <div style="margin-top:10px">
+        <div class="row">
+          <input id="discountCode" placeholder="Discount code (optional)"/>
+          <button class="button" id="applyDisc">Apply</button>
+        </div>
+        <div class="small" id="discStatus"></div>
+
+        <div style="margin-top:10px">
+          <input id="buyerDiscord" placeholder="Buyer (Discord username)"/>
+        </div>
+        <div style="margin-top:10px">
+          <input id="buyerIgn" placeholder="IGN"/>
+        </div>
+        <div style="margin-top:10px">
+          <textarea id="orderNotes" placeholder="Order notes (optional)"></textarea>
+        </div>
+        <div style="margin-top:10px; display:none" id="orderCodeRow">
+          <div class="row">
+            <input id="lastOrderCode" class="mono" readonly />
+            <button class="button" id="copyOrderCode" data-i18n="copyCode">Copy</button>
+          </div>
+          <div class="small" data-i18n="orderCodeLabel">Order Code</div>
+        </div>
+
+        <div class="totalLine"><span>Subtotal</span><strong id="subTotal">$0.00</strong></div>
+        <div class="totalLine"><span>Discount</span><strong id="discTotal">$0.00</strong></div>
+        <div class="totalLine"><span>Total</span><strong id="grandTotal">$0.00</strong></div>
+
+        <button class="button" style="width:100%; margin-top:12px" id="checkoutBtn">Checkout (Send Pending)</button>
+        <div id="checkoutMsg" class="notice" style="display:none; margin-top:10px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="notice" style="display:none; position:fixed; right:14px; top:14px; z-index:60; max-width:min(420px, 92vw);"></div>
+<div id="supernova" style="display:none; position:fixed; inset:0; z-index:19; pointer-events:none;"></div>
+
+<!-- Admin Login Modal -->
+<div class="overlay" id="adminOverlay" role="dialog" aria-modal="true">
+  <div class="modal">
+    <div class="mHead">
+      <div style="font-weight:900">Admin Login</div>
+      <button class="closeBtn" id="closeAdmin">✕</button>
+    </div>
+    <div class="small">Enter password</div>
+    <input id="adminPass" type="password" placeholder="Password"/>
+    <button class="button" style="width:100%; margin-top:10px" id="adminLogin">Login</button>
+    <div class="notice bad" id="adminErr" style="display:none; margin-top:10px"></div>
+  </div>
+</div>
+
+<script>
+window.addEventListener("DOMContentLoaded", () => {
+  // ======= CONFIG =======
+  const ADMIN_PASSWORD = "LOOTTECHONTOP";
+  const DEFAULT_WEBHOOK = "https://discord.com/api/webhooks/1398888685784793088/W95FBU0_jgNvOqY7lMa6DMIGrVtmtnAZ2b5oeJVRgFUwAq8hG3uWpUwIO4e9dOht515L";
+  const FALLBACK_IMG = "https://images.unsplash.com/photo-1444703686981-a3abbc4d4fe3?auto=format&fit=crop&w=800&q=80";
+
+  const USE_BACKEND = true;
+  const API_BASE = "/.netlify/functions";
+
+  // ======= i18n + Currency + Theme =======
+  const I18N = {
+    en: { cartBtn:"Cart", copyCode:"Copy", orderCodeLabel:"Order Code", toastAdded:"Added to cart ✅", toastCopied:"Copied ✅", invalidDiscount:"Invalid or inactive code.", applied:"Applied", checkoutPending:"Order sent (PENDING)" },
+    es: { cartBtn:"Carrito", copyCode:"Copiar", orderCodeLabel:"Código de pedido", toastAdded:"Añadido ✅", toastCopied:"Copiado ✅", invalidDiscount:"Código inválido o inactivo.", applied:"Aplicado", checkoutPending:"Pedido enviado (PENDIENTE)" },
+    de: { cartBtn:"Warenkorb", copyCode:"Kopieren", orderCodeLabel:"Bestellcode", toastAdded:"Hinzugefügt ✅", toastCopied:"Kopiert ✅", invalidDiscount:"Ungültiger oder inaktiver Code.", applied:"Angewendet", checkoutPending:"Bestellung gesendet (AUSSTEHEND)" }
+  };
+
+  const CURRENCY = {
+    USD: { symbol:"$", rate:1, name:"USD" },
+    EUR: { symbol:"€", rate:0.92, name:"EUR" },
+    JPY: { symbol:"¥", rate:155.0, name:"JPY" },
+    MXN: { symbol:"$", rate:17.0, name:"MXN" },
+    ARS: { symbol:"$", rate:1000.0, name:"ARS" },
+    GBP: { symbol:"£", rate:0.79, name:"GBP" },
+    CAD: { symbol:"$", rate:1.36, name:"CAD" },
+    AUD: { symbol:"$", rate:1.52, name:"AUD" },
+    BRL: { symbol:"R$", rate:5.05, name:"BRL" },
+    INR: { symbol:"₹", rate:83.0, name:"INR" },
+    KRW: { symbol:"₩", rate:1350.0, name:"KRW" },
+    PHP: { symbol:"₱", rate:56.0, name:"PHP" },
+    TRY: { symbol:"₺", rate:35.0, name:"TRY" },
+    IDR: { symbol:"Rp", rate:15500.0, name:"IDR" },
+    NGN: { symbol:"₦", rate:1600.0, name:"NGN" },
+    ZAR: { symbol:"R", rate:18.5, name:"ZAR" },
+    SEK: { symbol:"kr", rate:10.4, name:"SEK" }
+  };
+
+  const THEMES = {
+    Void: { bg1:"#020006", bg2:"#0a0218", fogA:0.55, stars:1.0 },
+    Nebula: { bg1:"#05010c", bg2:"#12042a", fogA:0.70, stars:0.95 },
+    Eclipse: { bg1:"#00030a", bg2:"#07091a", fogA:0.40, stars:1.08 }
+  };
+
+  let adminToken = null;
+  const PREF = { lang:"moonink_lang", cur:"moonink_currency", theme:"moonink_theme" };
+
+  function t(key){
+    const lang = localStorage.getItem(PREF.lang) || "en";
+    return (I18N[lang] && I18N[lang][key]) ? I18N[lang][key] : (I18N.en[key] || key);
+  }
+
+  function showToast(text, bad=false){
+    const el = document.getElementById("toast");
+    if (!el) return;
+    el.style.display = "block";
+    el.classList.toggle("bad", !!bad);
+    el.textContent = text;
+    clearTimeout(window.__toastTimer);
+    window.__toastTimer = setTimeout(()=>{ el.style.display="none"; }, 1200);
+  }
+
+  function currentCurrency(){
+    const code = (localStorage.getItem(PREF.cur) || "USD").toUpperCase();
+    return CURRENCY[code] ? code : "USD";
+  }
+
+  function moneyLocal(centsUSD){
+    const code = currentCurrency();
+    const cfg = CURRENCY[code];
+    const val = (centsUSD/100) * cfg.rate;
+    const digits = (code==="JPY" || code==="ARS") ? 0 : 2;
+    return cfg.symbol + val.toFixed(digits) + " " + cfg.name;
+  }
+
+  function applyI18n(){
+    document.querySelectorAll("[data-i18n]").forEach(el=>{
+      const key = el.getAttribute("data-i18n");
+      el.textContent = t(key);
+    });
+  }
+
+  async function apiGet(path){
+    const r = await fetch(`${API_BASE}${path}`, {headers:{'Accept':'application/json'}});
+    if (!r.ok) throw new Error(await r.text());
+    return r.json();
+  }
+  async function apiPost(path, body, token){
+    const r = await fetch(`${API_BASE}${path}`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json', ...(token?{'Authorization':'Bearer '+token}:{})},
+      body: JSON.stringify(body||{})
+    });
+    if (!r.ok) throw new Error(await r.text());
+    return r.json();
+  }
+
+  function applyTheme(){
+    const name = localStorage.getItem(PREF.theme) || "Void";
+    const th = THEMES[name] || THEMES.Void;
+    document.documentElement.style.setProperty("--bg1", th.bg1);
+    document.documentElement.style.setProperty("--bg2", th.bg2);
+    document.documentElement.style.setProperty("--fogOpacity", String(th.fogA));
+    window.__starIntensity = th.stars;
+  }
+
+  // ======= STORAGE KEYS =======
+  const K = {
+    admin: "moonink_admin_unlocked",
+    webhook: "moonink_webhook",
+    about: "moonink_about",
+    cats: "moonink_cats",
+    prods: "moonink_prods",
+    cart: "moonink_cart",
+    discounts: "moonink_discounts",
+    orders: "moonink_orders",
+    seq: "moonink_seq",
+    last_checkout: "moonink_last_checkout"
+  };
+
+  // ======= HELPERS =======
+  const $ = (id) => document.getElementById(id);
+  const money = (cents) => "$" + (cents/100).toFixed(2);
+  const nowISO = () => new Date().toISOString();
+  const load = (k, fb) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : fb; } catch { return fb; } };
+  const save = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+  const loadStr = (k, fb="") => localStorage.getItem(k) ?? fb;
+  const saveStr = (k, v) => localStorage.setItem(k, v);
+  function showAdminToast(text, isBad=false){
+    const t = document.getElementById("adminToast");
+    if (!t) return;
+    t.style.display = "block";
+    t.classList.toggle("bad", !!isBad);
+    t.textContent = text;
+    clearTimeout(window.__adminToastTimer);
+    window.__adminToastTimer = setTimeout(()=>{ t.style.display="none"; }, 1800);
+  }
+
+  const dollarsToCents = (x) => {
+    const n = Number(String(x).replace(/[^0-9.]/g,""));
+    if (!Number.isFinite(n)) return 0;
+    return Math.max(0, Math.round(n * 100));
+  };
+
+  // ======= SEED =======
+  function seed(){
+    if (!localStorage.getItem(K.webhook)) localStorage.setItem(K.webhook, DEFAULT_WEBHOOK);
+    if (!localStorage.getItem(K.about)) localStorage.setItem(K.about, "Moon Ink — cosmic drops.\n\n• Orders are pending until confirmed.\n• Stock changes only when you confirm an order in Admin.\n");
+    if (!localStorage.getItem(K.seq)) localStorage.setItem(K.seq, "5022914492");
+
+    let cats = load(K.cats, null);
+    if (!Array.isArray(cats) || cats.length === 0) {
+      cats = [{id:1,name:"Featured"},{id:2,name:"Bundles"},{id:3,name:"Spawners"}];
+      save(K.cats, cats);
+    }
+    let prods = load(K.prods, null);
+    if (!Array.isArray(prods) || prods.length === 0) {
+      prods = [
+        {id:1,name:"Cow Spawner",price_cents:20,category_id:3,image_url:FALLBACK_IMG,featured:true,stock_qty:50,created_at:nowISO()},
+        {id:2,name:"1M Currency Bundle",price_cents:20,category_id:2,image_url:FALLBACK_IMG,featured:false,stock_qty:100,created_at:nowISO()}
+      ];
+      save(K.prods, prods);
+    }
+    let discounts = load(K.discounts, null);
+    if (!Array.isArray(discounts)) {
+      discounts = [{id:1,code:"MOON10",type:"percent",value:10,active:true}];
+      save(K.discounts, discounts);
+    }
+    if (!Array.isArray(load(K.orders, null))) save(K.orders, []);
+    if (!load(K.cart, null)) save(K.cart, {});
+  }
+
+  seed();
+
+  // ======= STATE =======
+  let categories = load(K.cats, []);
+  let products = load(K.prods, []);
+  let discounts = load(K.discounts, []);
+  let cart = load(K.cart, {});
+  let appliedDiscount = null;
+
+  function isAdmin(){ return loadStr(K.admin,"0")==="1"; }
+
+  // ======= TABS =======
+  function setTab(tab){
+    document.querySelectorAll(".tab").forEach(t=>{
+      t.classList.toggle("active", t.dataset.tab===tab);
+    });
+    document.querySelectorAll("[data-panel]").forEach(p=>{
+      p.style.display = (p.dataset.panel===tab) ? "block" : "none";
+    });
+  }
+  window.setTab = setTab; // for admin modal script access
+
+  document.querySelectorAll(".tab").forEach(t=>{
+    t.addEventListener("click", ()=>{
+      if (t.dataset.tab==="admin" && !isAdmin()) return; // hidden anyway
+      setTab(t.dataset.tab);
+    });
+  });
+
+  // ======= RENDER ABOUT =======
+  function renderAbout(){
+    $("aboutBox").textContent = loadStr(K.about,"");
+    $("aboutEditor").value = loadStr(K.about,"");
+  }
+
+  // ======= CATEGORY FILTER =======
+  function renderCatFilter(){
+    const sel = $("categoryFilter");
+    sel.innerHTML = "";
+    const all = document.createElement("option");
+    all.value="all"; all.textContent="All Categories";
+    sel.appendChild(all);
+    categories.slice().sort((a,b)=>a.name.localeCompare(b.name)).forEach(c=>{
+      const o=document.createElement("option");
+      o.value=String(c.id); o.textContent=c.name;
+      sel.appendChild(o);
+    });
+
+    const newSel = $("newCatSel");
+    newSel.innerHTML = '<option value="">(no category)</option>';
+    categories.slice().sort((a,b)=>a.name.localeCompare(b.name)).forEach(c=>{
+      const o=document.createElement("option");
+      o.value=String(c.id); o.textContent=c.name;
+      newSel.appendChild(o);
+    });
+  }
+
+  // ======= SHOP RENDER =======
+  function stockBadge(p){
+    const q = Math.max(0, Math.floor(Number(p.stock_qty||0)));
+    if (q <= 0) return `<span class="badge bad">Sold out</span>`;
+    if (q <= 5) return `<span class="badge warn">Low stock: ${q}</span>`;
+    return `<span class="badge good">In stock: ${q}</span>`;
+  }
+
+  function productCard(p){
+    const div=document.createElement("div");
+    div.className="product";
+    const cname = categories.find(c=>c.id===p.category_id)?.name || "(none)";
+    div.innerHTML = `
+      <div class="pLeft">
+        <img class="pImg" src="${(p.image_url||"").trim()||FALLBACK_IMG}" alt="img"/>
+        <div class="meta">
+          <div class="name">${escapeHtml(p.name)}</div>
+          <div class="muted">Category: ${escapeHtml(cname)}</div>
+          <div class="muted">${stockBadge(p)} ${p.featured ? '<span class="badge">Featured</span>' : ''}</div>
+        </div>
+      </div>
+      <div class="right">
+        <div class="price">${moneyLocal(p.price_cents)}</div>
+        <button class="button" ${((p.stock_qty||0)<=0) ? "disabled" : ""} data-add="${p.id}">
+          ${((p.stock_qty||0)<=0) ? "Sold Out" : "Add"}
+        </button>
+      </div>
+    `;
+    div.querySelector("[data-add]")?.addEventListener("click", ()=> addToCart(p.id));
+    return div;
+  }
+
+  let __featuredIndex = 0;
+  function startFeaturedCarousel(){
+    clearInterval(window.__featTimer);
+    window.__featTimer = setInterval(()=>{ __featuredIndex++; renderShop(); }, 3500);
+  }
+
+  function renderShop(){
+    // featured
+    const f = $("featuredList"); f.innerHTML="";
+    const featured = products.filter(p=>!!p.featured);
+    if (featured.length > 1) { __featuredIndex = __featuredIndex % featured.length; }
+    if (!featured.length){
+      const n=document.createElement("div");
+      n.className="notice"; n.textContent="No featured items yet.";
+      f.appendChild(n);
+    } else {
+      const shown = (featured.length<=1) ? featured : [featured[__featuredIndex]];
+      shown.forEach(p=>f.appendChild(productCard(p)));
+      startFeaturedCarousel();
+    }
+
+    // products
+    const list=$("productList"); list.innerHTML="";
+    const cat = $("categoryFilter").value;
+    const q = $("searchBox").value.trim().toLowerCase();
+    const filtered = products.filter(p=>{
+      const okCat = (cat==="all") || String(p.category_id)===String(cat);
+      const cname = (categories.find(c=>c.id===p.category_id)?.name || "").toLowerCase();
+      const okQ = !q || p.name.toLowerCase().includes(q) || cname.includes(q);
+      return okCat && okQ;
+    });
+    if (!filtered.length){
+      const n=document.createElement("div");
+      n.className="notice"; n.textContent="No products match.";
+      list.appendChild(n);
+    } else {
+      filtered.forEach(p=>list.appendChild(productCard(p)));
+    }
+  }
+
+  // ======= CART =======
+  function cartCount(){ return Object.values(cart).reduce((a,b)=>a+b,0); }
+
+  function clampCart(){
+    for (const [pid,qty] of Object.entries(cart)){
+      const p = products.find(x=>String(x.id)===String(pid));
+      if (!p){ delete cart[pid]; continue; }
+      const max = Math.max(0, Math.floor(Number(p.stock_qty||0)));
+      if (max<=0){ delete cart[pid]; continue; }
+      cart[pid]=Math.min(qty, max);
+    }
+    save(K.cart, cart);
+  }
+
+  function addToCart(pid){
+    const p = products.find(x=>x.id===pid);
+    if (!p) return;
+    const stock = Math.max(0, Math.floor(Number(p.stock_qty||0)));
+    if (stock<=0) return;
+    const id=String(pid);
+    cart[id]=(cart[id]||0)+1;
+    cart[id]=Math.min(cart[id], stock);
+    save(K.cart, cart);
+    renderCart();
+    showToast(t("toastAdded"));
+  }
+  function decCart(pid){
+    const id=String(pid);
+    if (!cart[id]) return;
+    cart[id]-=1;
+    if (cart[id]<=0) delete cart[id];
+    save(K.cart, cart);
+    renderCart();
+    showToast(t("toastAdded"));
+  }
+  function delCart(pid){
+    delete cart[String(pid)];
+    save(K.cart, cart);
+    renderCart();
+    showToast(t("toastAdded"));
+  }
+
+  function totals(){
+    let subtotal=0;
+    const lines=[];
+    for (const [pid,qty] of Object.entries(cart)){
+      const p = products.find(x=>String(x.id)===String(pid));
+      if (!p) continue;
+      const q=Math.max(1, Math.floor(Number(qty)));
+      const line=p.price_cents*q;
+      subtotal+=line;
+      lines.push({p,qty:q,line});
+    }
+    let disc=0;
+    if (appliedDiscount){
+      if (appliedDiscount.type==="percent") disc = Math.floor(subtotal*(appliedDiscount.value/100));
+      else disc = Math.min(subtotal, appliedDiscount.value_cents);
+    }
+    return {subtotal, disc, total: Math.max(0, subtotal-disc), lines};
+  }
+
+  function renderCart(){
+    clampCart();
+    $("cartCount").textContent=String(cartCount());
+    const el=$("cartItems"); el.innerHTML="";
+    const {subtotal,disc,total,lines}=totals();
+
+    if (!lines.length){
+      const n=document.createElement("div");
+      n.className="notice"; n.textContent="Your cart is empty.";
+      el.appendChild(n);
+    } else {
+      lines.forEach(({p,qty,line})=>{
+        const row=document.createElement("div");
+        row.className="cartItem";
+        row.innerHTML=`
+          <div>
+            <div style="font-weight:900">${escapeHtml(p.name)}</div>
+            <div class="small">${moneyLocal(p.price_cents)} each • stock ${p.stock_qty}</div>
+          </div>
+          <div>
+            <div class="qty">
+              <button class="iconBtn" data-minus="${p.id}">−</button>
+              <div style="min-width:26px;text-align:center;font-weight:900">${qty}</div>
+              <button class="iconBtn" data-plus="${p.id}" ${qty>=(p.stock_qty||0) ? "disabled":""}>+</button>
+              <button class="iconBtn" data-del="${p.id}">x</button>
+            </div>
+            <div style="margin-top:6px;font-weight:900;text-align:right">${moneyLocal(line)}</div>
+          </div>
+        `;
+        row.querySelector("[data-minus]")?.addEventListener("click", ()=>decCart(p.id));
+        row.querySelector("[data-plus]")?.addEventListener("click", ()=>addToCart(p.id));
+        row.querySelector("[data-del]")?.addEventListener("click", ()=>delCart(p.id));
+        el.appendChild(row);
+      });
+    }
+
+    $("subTotal").textContent=moneyLocal(subtotal);
+    $("discTotal").textContent="-"+moneyLocal(disc);
+    $("grandTotal").textContent=moneyLocal(total);
+  }
+
+  // ======= DISCOUNTS =======
+  function applyDiscount(){
+    const code=$("discountCode").value.trim().toUpperCase();
+    appliedDiscount=null;
+    $("discStatus").textContent="";
+    if (!code){ renderCart(); return; }
+    const today = new Date();
+    const d=discounts.find(x=>x.code===code && !!x.active && (!x.expires_on || new Date(x.expires_on+"T23:59:59") >= today));
+    if (!d){ $("discStatus").textContent=t("invalidDiscount"); renderCart(); return; }
+    appliedDiscount = (d.type==="percent")
+      ? {code:d.code,type:"percent",value:Number(d.value)||0}
+      : {code:d.code,type:"fixed",value_cents:Number(d.value_cents)||Number(d.value)||0};
+    $("discStatus").textContent = d.type==="percent" ? `Applied ${d.code} (${d.value}% off)` : `Applied ${d.code} (-${money(appliedDiscount.value_cents)})`;
+    renderCart();
+  }
+
+  // ======= WEBHOOK =======
+  async function sendWebhook(content){
+    const url = loadStr(K.webhook,"").trim();
+    if (!url) return {ok:false, skipped:true};
+    try{
+      const r = await fetch(url, {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({content})});
+      return {ok:r.ok, status:r.status};
+    } catch(e){ return {ok:false, err:String(e)}; }
+  }
+
+  
+    function supernovaFlash(){
+    const sn = document.getElementById("supernova");
+    if (!sn) return;
+    sn.style.display = "block";
+    sn.style.background = "radial-gradient(circle at 70% 20%, rgba(255,255,255,.22), rgba(190,120,255,.18), rgba(0,0,0,0) 65%)";
+    sn.style.opacity = "0";
+    sn.style.transition = "opacity 220ms ease";
+    requestAnimationFrame(()=>{ sn.style.opacity = "1"; });
+    setTimeout(()=>{ sn.style.opacity = "0"; }, 260);
+    setTimeout(()=>{ sn.style.display = "none"; }, 520);
+  }
+
+// ======= CONFETTI =======
+  const confCanvas = document.getElementById("confettiCanvas");
+  const confCtx = confCanvas ? confCanvas.getContext("2d") : null;
+  function resizeConf(){
+    if (!confCanvas || !confCtx) return;
+    const dpr = Math.max(1, Math.min(2, window.devicePixelRatio||1));
+    confCanvas.width = Math.floor(innerWidth*dpr);
+    confCanvas.height = Math.floor(innerHeight*dpr);
+    confCanvas.style.width = innerWidth+"px";
+    confCanvas.style.height = innerHeight+"px";
+    confCtx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  resizeConf();
+  window.addEventListener("resize", resizeConf);
+
+  let confetti = [];
+  function confettiBurst(){
+    if (!confCtx) return;
+    const n = 120;
+    const cx = innerWidth*0.72; // near cart
+    const cy = innerHeight*0.18;
+    for (let i=0;i<n;i++){
+      confetti.push({
+        x: cx + (Math.random()*40-20),
+        y: cy + (Math.random()*20-10),
+        vx: (Math.random()*2-1)*6,
+        vy: - (Math.random()*6+3),
+        g: 0.22 + Math.random()*0.12,
+        r: 3 + Math.random()*4,
+        a: 1,
+        rot: Math.random()*Math.PI*2,
+        vr: (Math.random()*2-1)*0.2,
+        life: 70 + Math.floor(Math.random()*40)
+      });
+    }
+    if (!window.__confettiRunning){
+      window.__confettiRunning = true;
+      requestAnimationFrame(confettiTick);
+    }
+  }
+  function confettiTick(){
+    if (!confCtx){ window.__confettiRunning=false; return; }
+    confCtx.clearRect(0,0,innerWidth,innerHeight);
+    const next=[];
+    for (const c of confetti){
+      c.x += c.vx; c.y += c.vy;
+      c.vy += c.g;
+      c.rot += c.vr;
+      c.life -= 1;
+      c.a = Math.max(0, Math.min(1, c.life/110));
+      if (c.life > 0 && c.y < innerHeight + 30) next.push(c);
+
+      // pastel purple/blue confetti without setting named colors
+      const hue = 245 + Math.random()*25;
+      confCtx.save();
+      confCtx.translate(c.x, c.y);
+      confCtx.rotate(c.rot);
+      confCtx.globalAlpha = c.a;
+      confCtx.fillStyle = `hsla(${hue}, 85%, 70%, ${c.a})`;
+      confCtx.fillRect(-c.r, -c.r*0.6, c.r*2, c.r*1.2);
+      confCtx.restore();
+    }
+    confetti = next;
+    if (confetti.length){
+      requestAnimationFrame(confettiTick);
+    } else {
+      confCtx.clearRect(0,0,innerWidth,innerHeight);
+      window.__confettiRunning = false;
+    }
+  }
+// ======= CHECKOUT (PENDING) =======
+  const cooldownSeconds = 10;
+  async function checkout(){
+    const msg=$("checkoutMsg"); msg.style.display="none"; msg.classList.remove("bad"); msg.textContent="";
+    const last = Number(localStorage.getItem(K.last_checkout) || "0");
+    const now = Date.now();
+    const waitMs = (last + cooldownSeconds*1000) - now;
+    if (waitMs > 0) {
+      msg.style.display="block"; msg.classList.add("bad");
+      msg.textContent = `Slow down 😅 Try again in ${Math.ceil(waitMs/1000)}s.`;
+      return;
+    }
+
+    const buyer=$("buyerDiscord").value.trim();
+    const ign=$("buyerIgn").value.trim();
+    if (!buyer){ msg.style.display="block"; msg.classList.add("bad"); msg.textContent="Buyer (Discord) is required."; return; }
+    if (!ign){ msg.style.display="block"; msg.classList.add("bad"); msg.textContent="IGN is required."; return; }
+
+    const {subtotal,disc,total,lines}=totals();
+    if (!lines.length){ msg.style.display="block"; msg.classList.add("bad"); msg.textContent="Cart is empty."; return; }
+
+    // quick stock check (does NOT deduct)
+    for (const li of lines){
+      const p = products.find(x=>x.id===li.p.id);
+      if (!p || (p.stock_qty||0) <= 0 || li.qty > (p.stock_qty||0)){
+        msg.style.display="block"; msg.classList.add("bad"); msg.textContent="Some items are sold out / exceed stock. Cart updated.";
+        clampCart(); renderShop(); renderCart(); return;
+      }
+    }
+
+    // order id + code
+    let seq = Number(localStorage.getItem(K.seq) || "5022914492");
+    seq += 1;
+    localStorage.setItem(K.seq, String(seq));
+    const orderId = seq;
+    const orderCode = String(Math.floor(1e9 + Math.random()*9e9));
+
+    const order = {
+      id: orderId,
+      order_code: orderCode,
+      status: "pending",
+      created_at: nowISO(),
+      buyer,
+      ign,
+      discount_code: appliedDiscount ? appliedDiscount.code : null,
+      subtotal_cents: subtotal,
+      discount_cents: disc,
+      total_cents: total,
+      notes: (document.getElementById("orderNotes")?.value || "").trim() || null,
+      items: lines.map(li => ({
+        product_id: li.p.id,
+        product_name: li.p.name,
+        qty: li.qty
+      }))
+    };
+
+    const orders = load(K.orders, []);
+    orders.unshift(order);
+    save(K.orders, orders);
+
+    localStorage.setItem(K.last_checkout, String(Date.now()));
+
+    // webhook text EXACT style
+    const itemsLine = order.items.map(it => `${it.qty}x ${it.product_name}`).join(", ");
+    const discountLine = order.discount_code ? order.discount_code : "None";
+    const est = new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/Toronto",
+      month: "short",
+      day: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+      timeZoneName: "short"
+    }).format(new Date()).replace(",", "");
+    const estPretty = est.replace(/(\d{4})/, "$1 —");
+
+    const content =
+`🌙 Moon Inc. — New Order
+👤 Buyer
+${order.buyer}
+🎮 IGN
+${order.ign}
+🧾 Order Code
+${order.order_code}
+🛒 Items
+${itemsLine}
+💸 Price
+${money(order.total_cents)}
+🏷 Discount
+${discountLine}
+⏱ Time (EST)
+${estPretty}` + (order.notes ? `\n📝 Notes\n${order.notes}` : ``);
+
+    const hook = await sendWebhook(content);
+    confettiBurst();
+    supernovaFlash();
+
+    // clear cart
+    cart = {};
+    save(K.cart, cart);
+    appliedDiscount=null;
+    $("discountCode").value="";
+    $("discStatus").textContent="";
+    renderCart();
+    renderOrdersAdmin();
+
+    msg.style.display="block";
+        msg.textContent = `Order sent (PENDING)
+Order Code: ${order.order_code}`;
+  }
+
+  // ======= ADMIN: categories/products/discounts/orders =======
+  async function renderAdmin(){
+    if (USE_BACKEND && adminToken){
+      try{
+        const st = await apiGet("/admin/state?token="+encodeURIComponent(adminToken));
+        categories = st.categories || categories;
+        products = st.products || products;
+        discounts = st.discounts || discounts;
+        save(K.orders, st.orders || load(K.orders, []));
+        if (st.settings){
+          if (st.settings.about_text != null) localStorage.setItem(K.about, st.settings.about_text);
+          if (st.settings.webhook_url != null) localStorage.setItem(K.webhook, st.settings.webhook_url);
+        }
+      } catch(e){ console.warn(e); }
+    }
+
+    // show admin tab button if unlocked
+    $("adminTabBtn").style.display = isAdmin() ? "inline-flex" : "none";
+    $("webhookUrl").value = loadStr(K.webhook,"");
+
+    // cats list
+    const cl=$("catList"); cl.innerHTML="";
+    categories.slice().sort((a,b)=>a.name.localeCompare(b.name)).forEach(c=>{
+      const row=document.createElement("div");
+      row.className="product";
+      row.innerHTML = `
+        <div class="meta">
+          <div class="name">${escapeHtml(c.name)}</div>
+          <div class="muted"><span class="badge mono">ID ${c.id}</span></div>
+        </div>
+        <div class="right" style="width:60%">
+          <input id="cat_${c.id}" value="${escapeAttr(c.name)}"/>
+          <button class="button" data-save="${c.id}">Save</button>
+          <button class="button" data-del="${c.id}">Del</button>
+        </div>
+      `;
+      row.querySelector("[data-save]")?.addEventListener("click", ()=>{
+        const v=row.querySelector("#cat_"+c.id).value.trim();
+        if (!v) return;
+        c.name=v;
+        save(K.cats, categories);
+        renderCatFilter(); renderShop(); renderAdmin();
+      });
+      row.querySelector("[data-del]")?.addEventListener("click", ()=>{
+        categories = categories.filter(x=>x.id!==c.id);
+        products.forEach(p=>{ if (p.category_id===c.id) p.category_id=null; });
+        save(K.cats, categories); save(K.prods, products);
+        renderCatFilter(); renderShop(); renderAdmin();
+      });
+      cl.appendChild(row);
+    });
+
+    // products edit
+    const pl=$("adminProdList"); pl.innerHTML="";
+    products.slice().forEach(p=>{
+      const row=document.createElement("div");
+      row.className="product";
+      row.innerHTML = `
+        <div class="pLeft">
+          <img class="pImg" src="${(p.image_url||"").trim()||FALLBACK_IMG}"/>
+          <div class="meta">
+            <div class="name">#${p.id} ${escapeHtml(p.name)}</div>
+            <div class="muted">${stockBadge(p)} ${p.featured ? '<span class="badge">Featured</span>' : ''}</div>
+          </div>
+        </div>
+        <div style="width:62%">
+          <div class="row">
+            <input id="pn_${p.id}" value="${escapeAttr(p.name)}" placeholder="Name"/>
+            <input id="pp_${p.id}" value="${(p.price_cents/100).toFixed(2)}" placeholder="Price"/>
+          </div>
+          <div class="row" style="margin-top:10px">
+            <select id="pc_${p.id}"></select>
+            <input id="pi_${p.id}" value="${escapeAttr(p.image_url||"")}" placeholder="Image URL"/>
+          </div>
+          <div class="row" style="margin-top:10px">
+            <input id="ps_${p.id}" value="${p.stock_qty||0}" placeholder="Stock"/>
+            <select id="pf_${p.id}">
+              <option value="0">not featured</option>
+              <option value="1">featured</option>
+            </select>
+          </div>
+          <div class="row" style="margin-top:10px">
+            <button class="button" data-psave="${p.id}">Save</button>
+            <button class="button" data-pdel="${p.id}">Del</button>
+          </div>
+        </div>
+      `;
+      const sel=row.querySelector("#pc_"+p.id);
+      sel.innerHTML = '<option value="">(no category)</option>';
+      categories.slice().sort((a,b)=>a.name.localeCompare(b.name)).forEach(c=>{
+        const o=document.createElement("option");
+        o.value=String(c.id); o.textContent=c.name;
+        if (String(p.category_id)===String(c.id)) o.selected=true;
+        sel.appendChild(o);
+      });
+      row.querySelector("#pf_"+p.id).value = p.featured ? "1":"0";
+
+      row.querySelector("[data-psave]")?.addEventListener("click", ()=>{
+        p.name = row.querySelector("#pn_"+p.id).value.trim() || p.name;
+        p.price_cents = dollarsToCents(row.querySelector("#pp_"+p.id).value);
+        p.category_id = sel.value ? Number(sel.value) : null;
+        p.image_url = row.querySelector("#pi_"+p.id).value.trim();
+        p.stock_qty = Math.max(0, Math.floor(Number(row.querySelector("#ps_"+p.id).value||0)));
+        p.featured = row.querySelector("#pf_"+p.id).value==="1";
+        save(K.prods, products);
+        clampCart(); renderShop(); renderCart(); renderAdmin();
+      });
+
+      row.querySelector("[data-pdel]")?.addEventListener("click", ()=>{
+        products = products.filter(x=>x.id!==p.id);
+        delete cart[String(p.id)];
+        save(K.prods, products); save(K.cart, cart);
+        clampCart(); renderShop(); renderCart(); renderAdmin();
+      });
+
+      pl.appendChild(row);
+    });
+
+    // discounts
+    const dl=$("discList"); dl.innerHTML="";
+    discounts.slice().forEach(d=>{
+      const row=document.createElement("div");
+      row.className="product";
+      row.innerHTML = `
+        <div class="meta">
+          <div class="name">${escapeHtml(d.code)}</div>
+          <div class="muted">${d.type==="percent" ? d.value+"% off" : money(d.value_cents||0)+" off"} ${d.active ? '<span class="badge good">active</span>' : '<span class="badge bad">inactive</span>'}</div>
+        </div>
+        <div class="right" style="width:62%">
+          <input id="dc_${d.id}" value="${escapeAttr(d.code)}"/>
+          <select id="dt_${d.id}">
+            <option value="percent">percent</option>
+            <option value="fixed">fixed</option>
+          </select>
+          <input id="dv_${d.id}" value="${d.type==="percent" ? d.value : ((d.value_cents||0)/100).toFixed(2)}"/>
+          <input id="de_${d.id}" value="${escapeAttr(d.expires_on||"")}" placeholder="YYYY-MM-DD"/>
+          <select id="da_${d.id}">
+            <option value="1">active</option>
+            <option value="0">inactive</option>
+          </select>
+          <button class="button" data-dsave="${d.id}">Save</button>
+          <button class="button" data-ddel="${d.id}">Del</button>
+        </div>
+      `;
+      row.querySelector("#dt_"+d.id).value = d.type;
+      row.querySelector("#da_"+d.id).value = d.active ? "1":"0";
+      row.querySelector("[data-dsave]")?.addEventListener("click", ()=>{
+        d.code = row.querySelector("#dc_"+d.id).value.trim().toUpperCase() || d.code;
+        d.type = row.querySelector("#dt_"+d.id).value;
+        d.active = row.querySelector("#da_"+d.id).value==="1";
+        d.expires_on = row.querySelector("#de_"+d.id).value.trim() || null;
+        if (d.type==="percent"){
+          d.value = Math.max(1, Math.min(100, Math.floor(Number(row.querySelector("#dv_"+d.id).value||0))));
+          delete d.value_cents;
+        } else {
+          d.value_cents = dollarsToCents(row.querySelector("#dv_"+d.id).value);
+          delete d.value;
+        }
+        save(K.discounts, discounts);
+        renderAdmin();
+      });
+      row.querySelector("[data-ddel]")?.addEventListener("click", ()=>{
+        discounts = discounts.filter(x=>x.id!==d.id);
+        save(K.discounts, discounts);
+        renderAdmin();
+      });
+      dl.appendChild(row);
+    });
+
+    renderOrdersAdmin();
+  }
+
+  let orderFilter = 'all';
+  function setOrderFilter(f){ orderFilter = f; renderOrdersAdmin(); }
+
+  function renderOrdersAdmin(){
+    const box=$("ordersAdmin"); box.innerHTML="";
+    const detail=$("orderDetailAdmin"); detail.style.display="none"; detail.textContent="";
+    let orders=load(K.orders, []);
+    if (orderFilter !== 'all') orders = orders.filter(o => {
+      const st = (o.delivered_at ? 'delivered' : (o.status||'pending'));
+      if (orderFilter === 'confirmed') return st === 'confirmed' || st === 'delivered';
+      return st === orderFilter;
+    });
+
+    if (q) orders = orders.filter(o => String(o.buyer||"").toLowerCase().includes(q) || String(o.ign||"").toLowerCase().includes(q) || String(o.order_code||"").toLowerCase().includes(q));
+    if (!orders.length){
+      const n=document.createElement("div"); n.className="notice"; n.textContent="No orders yet.";
+      box.appendChild(n); return;
+    }
+    orders.slice(0,200).forEach(o=>{
+      const row=document.createElement("div");
+      row.className="product";
+      const status = (o.delivered_at ? "delivered" : (o.status || "pending"));
+      const badge = (status==="confirmed" || status==="delivered") ? 'good' : (status==="declined" ? 'bad' : '');
+      row.innerHTML = `
+        <div class="meta">
+          <div class="name">#${o.id} <span class="badge ${badge}">${status}</span></div>
+          <div class="muted">${new Date(o.created_at).toLocaleString()}</div>
+          <div class="muted mono">Code: ${escapeHtml(o.order_code||"")}</div>
+        </div>
+        <div class="right">
+          <button class="button" data-view="${o.id}">View</button>
+          ${status==="pending" ? `<button class="button" data-c="${o.id}">C</button><button class="button" data-d="${o.id}">D</button>` : ""}${status==="confirmed" && !o.delivered_at ? ` <button class="button" data-dlv="${o.id}">Delivered</button>` : ""}
+        </div>
+      `;
+      row.querySelector("[data-view]")?.addEventListener("click", ()=>{
+        const items=(o.items||[]).map(it=>`• ${it.qty}x ${it.product_name}`).join("\n");
+        detail.style.display="block";
+        detail.textContent =
+          `🌙 Moon Ink — Order\n`+
+          `Status: ${o.status}\n`+
+          `Buyer: ${o.buyer}\n`+
+          `IGN: ${o.ign}\n`+
+          `Order Code: ${o.order_code}\n`+
+          `Total: ${money(o.total_cents)}\n`+
+          `Discount: ${o.discount_code || "None"}\n\nItems:\n${items}`;
+      });
+      row.querySelector("[data-c]")?.addEventListener("click", ()=>confirmOrder(o.id));
+      row.querySelector("[data-d]")?.addEventListener("click", ()=>declineOrder(o.id));
+      row.querySelector("[data-dlv]")?.addEventListener("click", ()=>markDelivered(o.id));
+      box.appendChild(row);
+    });
+  }
+
+  function updateOrder(id, patch){
+    let orders=load(K.orders, []);
+    if (orderFilter !== 'all') orders = orders.filter(o => {
+      const st = (o.delivered_at ? 'delivered' : (o.status||'pending'));
+      if (orderFilter === 'confirmed') return st === 'confirmed' || st === 'delivered';
+      return st === orderFilter;
+    });
+
+    const idx=orders.findIndex(x=>Number(x.id)===Number(id));
+    if (idx<0) return null;
+    orders[idx] = {...orders[idx], ...patch};
+    save(K.orders, orders);
+    return orders[idx];
+  }
+
+  function confirmOrder(id){
+    if (USE_BACKEND && adminToken){
+      apiPost('/admin/confirm', {id:Number(id)}, adminToken).then(()=>renderAdmin()).catch(e=>showAdminToast(String(e), true));
+      return;
+    }
+
+    let orders=load(K.orders, []);
+    if (orderFilter !== 'all') orders = orders.filter(o => {
+      const st = (o.delivered_at ? 'delivered' : (o.status||'pending'));
+      if (orderFilter === 'confirmed') return st === 'confirmed' || st === 'delivered';
+      return st === orderFilter;
+  });
+
+    const o=orders.find(x=>Number(x.id)===Number(id));
+    if (!o || o.status!=="pending") return;
+
+    // stock check
+    for (const it of (o.items||[])){
+      const p=products.find(x=>x.id===it.product_id);
+      if (!p) { showAdminToast("Missing product: "+it.product_name, true); return; }
+      const need=Math.max(1,Math.floor(Number(it.qty||1)));
+      const have=Math.max(0,Math.floor(Number(p.stock_qty||0)));
+      if (have<need) { showAdminToast(`Not enough stock for ${p.name}. Have ${have}, need ${need}.`, true); return; }
+    }
+
+    // deduct
+    for (const it of (o.items||[])){
+      const p=products.find(x=>x.id===it.product_id);
+      const need=Math.max(1,Math.floor(Number(it.qty||1)));
+      p.stock_qty=Math.max(0,Math.floor(Number(p.stock_qty||0))-need);
+    }
+    save(K.prods, products);
+    updateOrder(id, {status:"confirmed", confirmed_at: nowISO()});
+    clampCart();
+    renderShop(); renderCart(); renderAdmin();
+    showAdminToast("Confirmed ✅ Stock updated.");
+  }
+
+  function markDelivered(id){
+    if (USE_BACKEND && adminToken){
+      apiPost('/admin/delivered', {id:Number(id)}, adminToken).then(()=>renderAdmin()).catch(e=>showAdminToast(String(e), true));
+      return;
+    }
+
+    const orders=load(K.orders, []);
+    const o=orders.find(x=>Number(x.id)===Number(id));
+    if (!o || o.status!=="confirmed" || o.delivered_at) return;
+    updateOrder(id, {delivered_at: nowISO()});
+    renderAdmin();
+    showAdminToast("Marked delivered ✅");
+  }
+
+  function declineOrder(id){
+    if (USE_BACKEND && adminToken){
+      apiPost('/admin/decline', {id:Number(id)}, adminToken).then(()=>renderAdmin()).catch(e=>showAdminToast(String(e), true));
+      return;
+    }
+
+    let orders=load(K.orders, []);
+    if (orderFilter !== 'all') orders = orders.filter(o => {
+      const st = (o.delivered_at ? 'delivered' : (o.status||'pending'));
+      if (orderFilter === 'confirmed') return st === 'confirmed' || st === 'delivered';
+      return st === orderFilter;
+  });
+
+    const o=orders.find(x=>Number(x.id)===Number(id));
+    if (!o || o.status!=="pending") return;
+    updateOrder(id, {status:"declined", declined_at: nowISO()});
+    renderAdmin();
+    showAdminToast("Declined ✅ Stock not changed.");
+  }
+
+  // ======= ADMIN LOGIN MODAL (secret key) =======
+  const overlay=$("adminOverlay");
+  const adminErr=$("adminErr");
+  function openAdminLogin(){
+    adminErr.style.display="none";
+    $("adminPass").value="";
+    overlay.style.display="flex";
+    setTimeout(()=>$("adminPass").focus(), 20);
+  }
+  function closeAdminLogin(){ overlay.style.display="none"; }
+
+  // Secret: ArrowDown x3
+  let down=0; let timer=null;
+  document.addEventListener("keydown", (e)=>{
+    if (e.key==="ArrowDown"){
+      down++;
+      clearTimeout(timer);
+      timer=setTimeout(()=>down=0, 800);
+      if (down>=3){
+        down=0;
+        if (isAdmin()){
+          setTab("admin");
+          return;
+        }
+        openAdminLogin();
+      }
+    }
+
+  });
+
+  $("closeAdmin").addEventListener("click", closeAdminLogin);
+
+  function doLogin(){
+    if ($("adminPass").value === ADMIN_PASSWORD){
+      saveStr(K.admin, "1");
+      $("adminTabBtn").style.display="inline-flex";
+      closeAdminLogin();
+      setTab("admin");
+      renderAdmin();
+    } else {
+      adminErr.style.display="block";
+      adminErr.textContent="Wrong password";
+    }
+  }
+  $("adminLogin").addEventListener("click", doLogin);
+  $("adminPass").addEventListener("keydown", (e)=>{ if (e.key==="Enter") doLogin(); });
+
+  // ======= EVENTS =======
+  $("scrollCart").addEventListener("click", ()=> $("rightCard").scrollIntoView({behavior:"smooth", block:"start"}));
+  // Language selector
+  const langSel = document.getElementById("langSel");
+  if (langSel){
+    langSel.innerHTML = '<option value="en">EN</option><option value="es">ES</option><option value="de">DE</option>';
+    langSel.value = (localStorage.getItem(PREF.lang) || "en");
+    langSel.addEventListener("change", ()=>{
+      localStorage.setItem(PREF.lang, langSel.value);
+      applyI18n();
+      renderShop(); renderCart();
+    });
+  }
+
+  // Currency selector
+  const curSel = document.getElementById("currencySel");
+  if (curSel){
+    curSel.innerHTML = Object.keys(CURRENCY).map(c=>`<option value="${c}">${c}</option>`).join("");
+    curSel.value = currentCurrency();
+    curSel.addEventListener("change", ()=>{
+      localStorage.setItem(PREF.cur, curSel.value);
+      renderShop(); renderCart();
+      showToast("Currency: " + curSel.value);
+    });
+  }
+
+  // Theme selector
+  const themeSel = document.getElementById("themeSel");
+  if (themeSel){
+    themeSel.innerHTML = Object.keys(THEMES).map(n=>`<option value="${n}">${n}</option>`).join("");
+    themeSel.value = (localStorage.getItem(PREF.theme) || "Void");
+    themeSel.addEventListener("change", ()=>{
+      localStorage.setItem(PREF.theme, themeSel.value);
+      applyTheme();
+      showToast("Theme: " + themeSel.value);
+    });
+  }
+
+  $("categoryFilter").addEventListener("change", renderShop);
+  $("searchBox").addEventListener("input", renderShop);
+
+  $("applyDisc").addEventListener("click", applyDiscount);
+  $("checkoutBtn").addEventListener("click", checkout);
+
+  $("copyOrderCode")?.addEventListener("click", async ()=>{
+    const v = document.getElementById("lastOrderCode")?.value || "";
+    if (!v) return;
+    try{ await navigator.clipboard.writeText(v); showToast(t("toastCopied")); }
+    catch{ showToast("Copy failed", true); }
+  });
+
+  $("backShop").addEventListener("click", ()=> setTab("shop"));
+
+  $("closeAdminPanel")?.addEventListener("click", ()=>{
+    // lock admin again
+    localStorage.removeItem(K.admin);
+    $("adminTabBtn").style.display = "none";
+    setTab("shop");
+    showAdminToast("Admin closed 🔒");
+  });
+
+
+  // Orders filter buttons
+  $('orderFilterAll')?.addEventListener('click', ()=> setOrderFilter('all'));
+  $('orderFilterPending')?.addEventListener('click', ()=> setOrderFilter('pending'));
+  $('orderFilterConfirmed')?.addEventListener('click', ()=> setOrderFilter('confirmed'));
+  $('orderFilterDeclined')?.addEventListener('click', ()=> setOrderFilter('declined'));
+  $('orderSearch')?.addEventListener('input', ()=>renderOrdersAdmin());
+
+
+  $("saveWebhook").addEventListener("click", ()=>{
+    saveStr(K.webhook, $("webhookUrl").value.trim());
+    $("settingsMsg").style.display="block";
+    $("settingsMsg").textContent="Saved.";
+    setTimeout(()=>$("settingsMsg").style.display="none", 1000);
+  });
+
+  $("saveAbout").addEventListener("click", ()=>{
+    saveStr(K.about, $("aboutEditor").value || "");
+    renderAbout();
+  });
+
+  $("addCat").addEventListener("click", ()=>{
+    const name=$("newCat").value.trim();
+    if (!name) return;
+    const id = (categories.reduce((m,x)=>Math.max(m,x.id),0)||0)+1;
+    categories.push({id,name});
+    save(K.cats, categories);
+    $("newCat").value="";
+    renderCatFilter(); renderShop(); renderAdmin();
+  });
+
+  $("addProd").addEventListener("click", ()=>{
+    const name=$("newName").value.trim();
+    if (!name) return;
+    const price_cents=dollarsToCents($("newPrice").value);
+    const img=$("newImg").value.trim();
+    const stock=Math.max(0,Math.floor(Number($("newStock").value||0)));
+    const cat=$("newCatSel").value ? Number($("newCatSel").value) : null;
+    const feat=$("newFeat").value==="1";
+    const id = (products.reduce((m,x)=>Math.max(m,x.id),0)||0)+1;
+    products.push({id,name,price_cents,category_id:cat,image_url:img,featured:feat,stock_qty:stock,created_at:nowISO()});
+    save(K.prods, products);
+    $("newName").value=""; $("newPrice").value=""; $("newImg").value=""; $("newStock").value=""; $("newCatSel").value=""; $("newFeat").value="0";
+    renderShop(); renderAdmin();
+  });
+
+  $("addDisc").addEventListener("click", ()=>{
+    const code=$("discCode").value.trim().toUpperCase();
+    if (!code) return;
+    if (discounts.some(d=>d.code===code)) return;
+    const type=$("discType").value;
+    const active=$("discActive").value==="1";
+    const id=(discounts.reduce((m,x)=>Math.max(m,x.id),0)||0)+1;
+    const raw=$("discVal").value.trim();
+    const exp=$("discExp").value.trim();
+    if (type==="percent"){
+      discounts.push({id,code,type,value:Math.max(1,Math.min(100,Math.floor(Number(raw)||0))),active, expires_on: exp || null});
+    } else {
+      discounts.push({id,code,type,value_cents:dollarsToCents(raw),active, expires_on: exp || null});
+    }
+    save(K.discounts, discounts);
+    $("discCode").value=""; $("discVal").value=""; $("discExp").value="";
+    renderAdmin();
+  });
+
+  $("exportBtn").addEventListener("click", ()=>{
+    const blob = new Blob([JSON.stringify({
+      exported_at: nowISO(),
+      webhook: loadStr(K.webhook,""),
+      about: loadStr(K.about,""),
+      categories, products, discounts,
+      cart: load(K.cart, {}),
+      orders: load(K.orders, []),
+      seq: loadStr(K.seq,"")
+    }, null, 2)], {type:"application/json"});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");
+    a.href=url; a.download="moon-ink-backup.json";
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  });
+
+
+  $("importBtn").addEventListener("click", async ()=>{
+    const f = document.getElementById("importFile").files?.[0];
+    if (!f) { showAdminToast("Choose a backup JSON file first.", true); return; }
+    try{
+      const text = await f.text();
+      const data = JSON.parse(text);
+      if (!confirm("Import will replace your current shop data on this device. Continue?")) return;
+
+      if (data.webhook != null) localStorage.setItem(K.webhook, data.webhook);
+      if (data.about != null) localStorage.setItem(K.about, data.about);
+      if (data.seq != null) localStorage.setItem(K.seq, data.seq);
+
+      if (Array.isArray(data.categories)) { categories = data.categories; save(K.cats, categories); }
+      if (Array.isArray(data.products)) { products = data.products; save(K.prods, products); }
+      if (Array.isArray(data.discounts)) { discounts = data.discounts; save(K.discounts, discounts); }
+      if (Array.isArray(data.orders)) { save(K.orders, data.orders); }
+
+      if (data.cart && typeof data.cart === "object") { cart = data.cart; save(K.cart, cart); }
+
+      document.getElementById("webhookUrl").value = loadStr(K.webhook,"");
+      renderCatFilter(); renderShop(); renderCart(); renderAbout(); renderAdmin();
+      showAdminToast("Imported ✅");
+    } catch(e){
+      showAdminToast("Import failed: " + String(e), true);
+    }
+  });
+
+  $("wipeBtn").addEventListener("click", ()=>{
+    if (!confirm("Wipe everything saved in this browser?")) return;
+    Object.values(K).forEach(k=>localStorage.removeItem(k));
+    location.reload();
+  });
+
+  // ======= BACKEND INIT =======
+  async function initBackendLoad(){
+    if (!USE_BACKEND) return;
+    try{
+      const data = await apiGet('/bootstrap');
+      categories = data.categories || categories;
+      products = data.products || products;
+      discounts = data.discounts || discounts;
+      if (data.about_text) localStorage.setItem(K.about, data.about_text);
+      if (data.webhook_url) localStorage.setItem(K.webhook, data.webhook_url); // admin can override
+    } catch(e){
+      console.warn('Backend bootstrap failed, using local defaults:', e);
+    }
+  }
+
+// ======= INIT RENDER =======
+  applyTheme();
+  applyI18n();
+  initBackendLoad().then(()=>{ renderCatFilter(); renderShop(); renderCart(); renderAbout(); renderAdmin(); });
+  // initial render fallback (in case backend slow)
+  $("adminTabBtn").style.display = isAdmin() ? "inline-flex" : "none";
+  $("webhookUrl").value = loadStr(K.webhook,"");
+  renderCatFilter();
+  renderAbout();
+  renderShop();
+  renderCart();
+  if (isAdmin()) renderAdmin();
+
+  // ======= STARFIELD (safe) =======
+  const canvas = document.getElementById("starCanvas");
+  const ctx = canvas ? canvas.getContext("2d") : null;
+  function resize(){
+    if (!canvas || !ctx) return;
+    const dpr = Math.max(1, Math.min(2, window.devicePixelRatio||1));
+    canvas.width = Math.floor(innerWidth*dpr);
+    canvas.height = Math.floor(innerHeight*dpr);
+    canvas.style.width = innerWidth+"px";
+    canvas.style.height = innerHeight+"px";
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  let stars=[];
+  let shootingStars=[];
+  let parallaxX=0, parallaxY=0;
+  function spawnShootingStar(){
+    // spawn from random top/left edge, diagonal across
+    const fromTop = Math.random() < 0.6;
+    const x = fromTop ? Math.random()*innerWidth : -40;
+    const y = fromTop ? -40 : Math.random()*(innerHeight*0.6);
+    const speed = 18 + Math.random()*10;
+    const angle = (Math.PI/4) + (Math.random()*0.25 - 0.125); // around 45deg
+    shootingStars.push({
+      x, y,
+      vx: Math.cos(angle)*speed,
+      vy: Math.sin(angle)*speed,
+      life: 18 + Math.floor(Math.random()*10),
+      maxLife: 28,
+      w: 180 + Math.random()*120
+    });
+  }
+
+  function seedStars(){
+    const count = Math.floor(Math.min(420, Math.max(220, (innerWidth*innerHeight)/5200)));
+    stars=[];
+    for (let i=0;i<count;i++){
+      stars.push({
+        x: Math.random()*innerWidth,
+        y: Math.random()*innerHeight,
+        r: Math.random()*2.2+0.4,
+        vx: (Math.random()*2-1)*(Math.random()*0.35+0.08),
+        vy: (Math.random()*2-1)*(Math.random()*0.35+0.08),
+        a: Math.random()*0.55+0.15,
+        tw: Math.random()*0.9+0.25,
+        ph: Math.random()*Math.PI*2,
+        b: Math.random()*0.45 + 0.25
+      });
+    }
+  }
+  function draw(t){
+    if (!ctx) return;
+    ctx.clearRect(0,0,innerWidth,innerHeight);
+
+    // soft haze
+    const g=ctx.createRadialGradient(innerWidth*0.2, innerHeight*0.15, 0, innerWidth*0.2, innerHeight*0.15, Math.max(innerWidth,innerHeight)*0.95);
+    g.addColorStop(0, "rgba(190,120,255,0.12)");
+    g.addColorStop(0.55, "rgba(120,220,255,0.08)");
+    g.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle=g; ctx.fillRect(0,0,innerWidth,innerHeight);
+
+    // occasional shooting stars
+    if (Math.random() < 0.008) spawnShootingStar(); // ~rare
+    // draw shooting star trail
+    for (const sh of shootingStars){
+      sh.x += sh.vx; sh.y += sh.vy;
+      sh.life -= 1;
+      const a = Math.max(0, Math.min(1, sh.life / sh.maxLife));
+      ctx.save();
+      ctx.globalAlpha = a;
+      ctx.strokeStyle = `rgba(255,255,255,${0.75*a})`;
+      ctx.lineWidth = 2;
+      ctx.shadowBlur = 26 * a;
+      ctx.shadowColor = "rgba(230,190,255,0.85)";
+      ctx.beginPath();
+      ctx.moveTo(sh.x, sh.y);
+      ctx.lineTo(sh.x - sh.vx*4.5, sh.y - sh.vy*4.5);
+      ctx.stroke();
+      ctx.restore();
+    }
+    shootingStars = shootingStars.filter(sh => sh.life>0 && sh.x < innerWidth+200 && sh.y < innerHeight+200);
+
+    ctx.shadowColor="rgba(245,220,255,0.95)";
+    for (const st of stars){
+      st.x += st.vx; st.y += st.vy;
+      if (st.y > innerHeight+10){ st.y=-10; st.x=Math.random()*innerWidth; }
+      if (st.y < -10){ st.y=innerHeight+10; st.x=Math.random()*innerWidth; }
+      if (st.x > innerWidth+10){ st.x=-10; st.y=Math.random()*innerHeight; }
+      if (st.x < -10){ st.x=innerWidth+10; st.y=Math.random()*innerHeight; }
+
+      const tw = 0.55 + 0.45*Math.sin((t/1000)*st.tw + st.ph);
+      const alpha = Math.max(0, Math.min(1.0, (st.a*tw) * st.b * 1.15));
+      ctx.beginPath();
+      ctx.shadowBlur = 12*alpha;
+      ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+      const dx = st.x + parallaxX*12;
+      const dy = st.y + parallaxY*10;
+      ctx.arc(dx, dy, st.r, 0, Math.PI*2);
+      ctx.fill();
+    }
+    requestAnimationFrame(draw);
+  }
+  document.addEventListener("mousemove", (e)=>{
+    const cx=innerWidth/2, cy=innerHeight/2;
+    parallaxX=(e.clientX-cx)/cx;
+    parallaxY=(e.clientY-cy)/cy;
+  });
+
+  if (canvas && ctx){
+    resize(); seedStars(); requestAnimationFrame(draw);
+    addEventListener("resize", ()=>{ resize(); seedStars(); });
+  }
+
+  // ======= escape helpers =======
+  function escapeHtml(s){ return String(s??"").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function escapeAttr(s){ return escapeHtml(s).replace(/`/g,"&#96;"); }
+
+});
+</script>
+</body>
+</html>
